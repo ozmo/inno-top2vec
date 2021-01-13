@@ -47,6 +47,20 @@ sh = logging.StreamHandler()
 sh.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
 logger.addHandler(sh)
 
+# Check for configuration via environment variables
+# CONFIG_IGNORE_UNSEEN_WORDS
+# Expects either 0 or 1.
+# If 0: it will default to throwing a ValueError when a word is used which is not in the model's
+#       vocab during search_topics, search_documents_by_keywords, similar_words, etc.
+# If 1: it will silently filter words which are not in the model's vocab.
+from os import environ
+try:
+    CONFIG_IGNORE_UNSEEN_WORDS=int(environ.get("TOP2VEC_IGNORE_UNSEEN_WORDS", 0))
+except ValueError:
+    CONFIG_IGNORE_UNSEEN_WORDS = 0
+if CONFIG_IGNORE_UNSEEN_WORDS == 1:
+    logger.log(logging.INFO, "CONFIG_IGNORE_UNSEEN_WORDS is now enabled, the model will now ignore"
+                           + " words that are not in the model's vocab.")
 
 def default_tokenizer(doc):
     """Tokenize documents for training and remove too long/short words"""
@@ -891,10 +905,17 @@ class Top2Vec:
         else:
             vocab = self.vocab
 
+        if CONFIG_IGNORE_UNSEEN_WORDS == 1:
+            keywords_lower = list(filter(lambda x: x in vocab, keywords_lower))
+            keywords_neg_lower = list(filter(lambda x: x in vocab, keywords_neg_lower))
+
+            if len(keywords_lower) == 0:
+                raise ValueError("After filtering for words that have not been learned by the model"
+                               + " the keyword list is empty! Cannot proceed.")
+        
         for word in keywords_lower + keywords_neg_lower:
             if word not in vocab:
                 raise ValueError(f"'{word}' has not been learned by the model so it cannot be searched.")
-
         return keywords_lower, keywords_neg_lower
 
     def _validate_document_ids_add_doc(self, documents, document_ids):
