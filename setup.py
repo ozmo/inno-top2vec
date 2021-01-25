@@ -34,6 +34,19 @@ setuptools.setup(
         'hdbscan',
         'wordcloud',
         'joblib < 1.0.0',
+        'tensorflow',
+        'tensorflow_hub',
+        'tensorflow_text',
+        'torch',
+        'sentence_transformers',
+        'hnswlib',
+        'joblib < 1.0.0',
+        'matplotlib',
+        'datashader',
+        'bokeh',
+        'holoviews',
+        'scikit-image',
+        'colorcet'
     ],
     extras_require={
         'sentence_encoders': [

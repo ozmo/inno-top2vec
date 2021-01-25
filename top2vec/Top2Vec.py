@@ -8,6 +8,7 @@ from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 from gensim.utils import simple_preprocess
 from gensim.parsing.preprocessing import strip_tags
 import umap
+import umap.plot
 import hdbscan
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
@@ -179,7 +180,8 @@ class Top2Vec:
                  workers=None,
                  tokenizer=None,
                  use_embedding_model_tokenizer=False,
-                 verbose=True):
+                 verbose=True,
+                 plot_embeddings=False):
 
         if verbose:
             logger.setLevel(logging.DEBUG)
@@ -187,6 +189,11 @@ class Top2Vec:
         else:
             logger.setLevel(logging.WARNING)
             self.verbose = False
+
+        if plot_embeddings:
+            self.plot_embeddings = True
+        else:
+            self.plot_embeddings = False
 
         if tokenizer is not None:
             self._tokenizer = tokenizer
@@ -349,6 +356,22 @@ class Top2Vec:
         cluster = hdbscan.HDBSCAN(min_cluster_size=15,
                                   metric='euclidean',
                                   cluster_selection_method='eom').fit(umap_model.embedding_)
+
+        if self.plot_embeddings:
+            # create 2D embeddings of documents for plotting
+            umap_model_2d = umap.UMAP(n_neighbors=15,
+                                    n_components=2,
+                                    metric='cosine').fit(self._get_document_vectors(norm=False))
+            umap.plot.points(umap_model_2d)
+            
+            # find dense areas of 2D embeddings for plotting
+            cluster_2d = hdbscan.HDBSCAN(min_cluster_size=15,
+                                        metric='euclidean',
+                                        cluster_selection_method='eom').fit(umap_model_2d.embedding_)
+            umap.plot.points(umap_model_2d, labels=cluster_2d.labels_)
+
+            # plot the embeddings
+            plt.show()
 
         # calculate topic vectors from dense areas of documents
         logger.info('Finding topics')
