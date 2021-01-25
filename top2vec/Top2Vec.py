@@ -166,6 +166,9 @@ class Top2Vec:
     
     verbose: bool (Optional, default True)
         Whether to print status data during training.
+
+    plot_embeddings: bool (Optional, default False)
+        Whether to plot and show unlabeled and labeled UMAP embeddings.
     """
 
     def __init__(self,
@@ -363,7 +366,7 @@ class Top2Vec:
                                     n_components=2,
                                     metric='cosine').fit(self._get_document_vectors(norm=False))
             umap.plot.points(umap_model_2d)
-            
+
             # find dense areas of 2D embeddings for plotting
             cluster_2d = hdbscan.HDBSCAN(min_cluster_size=15,
                                         metric='euclidean',
