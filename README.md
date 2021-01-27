@@ -87,6 +87,10 @@ attracted the documents to the dense area are the topic words.
 Installation
 ------------
 
+\[Ozmo\] Easy install:
+
+    pipenv install
+
 The easy way to install Top2Vec is:
 
     pip install top2vec
