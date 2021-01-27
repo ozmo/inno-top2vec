@@ -11,6 +11,7 @@ import umap
 import umap.plot
 import hdbscan
 from wordcloud import WordCloud
+from matplotlib.colors import ListedColormap
 import matplotlib.pyplot as plt
 from joblib import dump, load
 from sklearn.cluster import dbscan
@@ -360,8 +361,6 @@ class Top2Vec:
                                   metric='euclidean',
                                   cluster_selection_method='eom').fit(umap_model.embedding_)
 
-        if self.plot_embeddings: self.plot(show=True)
-
         # calculate topic vectors from dense areas of documents
         logger.info('Finding topics')
 
@@ -404,6 +403,12 @@ class Top2Vec:
         self.word_index = None
         self.serialized_word_index = None
         self.words_indexed = False
+
+        # initialize 2D embedding
+        self.umap_model_2d = None
+
+        # plot embeddings
+        if self.plot_embeddings: self.plot(show=True)
 
     def save(self, file):
         """
@@ -2127,52 +2132,55 @@ class Top2Vec:
 
     def plot(self, show=False, reduced=False, files_suffix=''):
         """
-        Create 2D reduced embedding scatter plots (unlabed and labeled).
+        Create a 2D reduced embedding scatter plot (labeled).
 
-        Two scatter plots will be generated. The first plot will
-        be an unlabeled scatter plot of the document vector embeddings reduced
-        to two dimensions. The second plot will be the same, but labeled by
-        topic ID. On the second plot, the pervasive red dots represent
-        documents which do not fit well into any particular topic group.
+        The plot will be a labeled (by topic) scatter plot of the document
+        vector embeddings reduced down to two dimensions.
 
         Parameters
         ----------
         show: bool (Optional, default False)
-            The plots will not be shown by default. If True the
-            plots will be displayed.
+            The plot will not be shown by default. If True the
+            plot will be displayed.
 
         reduced: bool (Optional, default False)
             Original topics are used by default. If True the
             reduced topics will be used.
 
         files_suffix: str (Optional, default='')
-            Label to apply at the end of the saved plot image filenames.
+            Label to apply at the end of the saved plot image filename.
 
         Returns
         -------
-        A list of figures of the plotted document embeddings.
+        A figure of the plotted document embeddings.
 
         """
 
-        # create 2D embeddings of documents for plotting
-        logger.info('Ceating 2D reduced embedding of documents')
-        umap_model_2d = umap.UMAP(n_neighbors=15,
-                                  n_components=2,
-                                  metric='cosine').fit(self._get_document_vectors(norm=False))
-        umap.plot.points(umap_model_2d)
-        plt.gcf().savefig(f'plot_unlabeled_{files_suffix}.png')
+        if not self.umap_model_2d:
+            # create 2D embeddings of documents for plotting
+            logger.info('Ceating 2D reduced embedding of documents')
+            self.umap_model_2d = umap.UMAP(n_neighbors=15,
+                                    n_components=2,
+                                    metric='cosine').fit(self._get_document_vectors(norm=False))
 
-        # find dense areas of 2D embeddings for plotting
-        logger.info('Finding dense areas of 2D embedding')
-        cluster_2d = hdbscan.HDBSCAN(min_cluster_size=15,
-                                     metric='euclidean',
-                                     cluster_selection_method='eom').fit(umap_model_2d.embedding_)
-        umap.plot.points(umap_model_2d, labels=cluster_2d.labels_)
-        plt.gcf().savefig(f'plot_labeled_{files_suffix}.png')
+        # janky way to ensure adjacent labels use contrasting colors
+        colors_list = ["tab:blue", "tab:orange", "tab:green", "tab:cyan", "tab:purple",
+                       "tab:brown", "tab:pink", "tab:olive", "tab:red"] * 30
+
+        if reduced:
+            cmap = ListedColormap(colors_list[0:len(set(self.doc_top_reduced))])
+            labels = self.doc_top_reduced
+            filename = f'plot_reduced_{files_suffix}.png'
+        else:
+            cmap = ListedColormap(colors_list[0:len(set(self.doc_top))])
+            labels = self.doc_top
+            filename = f'plot_{files_suffix}.png'
+
+        umap.plot.points(self.umap_model_2d, labels=labels, color_key_cmap=cmap)
+        fig = plt.gcf()
+        fig.set_size_inches(7.5, 7.5)
+        fig.savefig(filename, dpi=400)
 
         if show: plt.show()
 
-        plts = []
-        for num in plt.get_fignums():
-            plts.append(plt.figure(num))
-        return plts
+        return fig
