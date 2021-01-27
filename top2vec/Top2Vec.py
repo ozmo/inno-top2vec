@@ -360,21 +360,7 @@ class Top2Vec:
                                   metric='euclidean',
                                   cluster_selection_method='eom').fit(umap_model.embedding_)
 
-        if self.plot_embeddings:
-            # create 2D embeddings of documents for plotting
-            umap_model_2d = umap.UMAP(n_neighbors=15,
-                                    n_components=2,
-                                    metric='cosine').fit(self._get_document_vectors(norm=False))
-            umap.plot.points(umap_model_2d)
-
-            # find dense areas of 2D embeddings for plotting
-            cluster_2d = hdbscan.HDBSCAN(min_cluster_size=15,
-                                        metric='euclidean',
-                                        cluster_selection_method='eom').fit(umap_model_2d.embedding_)
-            umap.plot.points(umap_model_2d, labels=cluster_2d.labels_)
-
-            # plot the embeddings
-            plt.show()
+        if self.plot_embeddings: self.plot(show=True)
 
         # calculate topic vectors from dense areas of documents
         logger.info('Finding topics')
@@ -2138,3 +2124,55 @@ class Top2Vec:
                       height=400,
                       background_color=background_color).generate_from_frequencies(word_score_dict))
         plt.title("Topic " + str(topic_num), loc='left', fontsize=25, pad=20)
+
+    def plot(self, show=False, reduced=False, files_suffix=''):
+        """
+        Create 2D reduced embedding scatter plots (unlabed and labeled).
+
+        Two scatter plots will be generated. The first plot will
+        be an unlabeled scatter plot of the document vector embeddings reduced
+        to two dimensions. The second plot will be the same, but labeled by
+        topic ID. On the second plot, the pervasive red dots represent
+        documents which do not fit well into any particular topic group.
+
+        Parameters
+        ----------
+        show: bool (Optional, default False)
+            The plots will not be shown by default. If True the
+            plots will be displayed.
+
+        reduced: bool (Optional, default False)
+            Original topics are used by default. If True the
+            reduced topics will be used.
+
+        files_suffix: str (Optional, default='')
+            Label to apply at the end of the saved plot image filenames.
+
+        Returns
+        -------
+        A list of figures of the plotted document embeddings.
+
+        """
+
+        # create 2D embeddings of documents for plotting
+        logger.info('Ceating 2D reduced embedding of documents')
+        umap_model_2d = umap.UMAP(n_neighbors=15,
+                                  n_components=2,
+                                  metric='cosine').fit(self._get_document_vectors(norm=False))
+        umap.plot.points(umap_model_2d)
+        plt.gcf().savefig(f'plot_unlabeled_{files_suffix}.png')
+
+        # find dense areas of 2D embeddings for plotting
+        logger.info('Finding dense areas of 2D embedding')
+        cluster_2d = hdbscan.HDBSCAN(min_cluster_size=15,
+                                     metric='euclidean',
+                                     cluster_selection_method='eom').fit(umap_model_2d.embedding_)
+        umap.plot.points(umap_model_2d, labels=cluster_2d.labels_)
+        plt.gcf().savefig(f'plot_labeled_{files_suffix}.png')
+
+        if show: plt.show()
+
+        plts = []
+        for num in plt.get_fignums():
+            plts.append(plt.figure(num))
+        return plts
