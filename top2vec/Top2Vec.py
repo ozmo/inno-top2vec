@@ -2130,7 +2130,7 @@ class Top2Vec:
                       background_color=background_color).generate_from_frequencies(word_score_dict))
         plt.title("Topic " + str(topic_num), loc='left', fontsize=25, pad=20)
 
-    def plot(self, show=False, reduced=False, files_suffix='', colors_list=[]):
+    def plot(self, show=False, reduced=False, files_suffix='', colors_list=[], show_legend=False):
         """
         Create a 2D reduced embedding scatter plot (labeled).
 
@@ -2155,6 +2155,8 @@ class Top2Vec:
             is the first list index. The Nth topic is the Nth list index.
             Colors are given as string names.
             https://matplotlib.org/3.1.0/gallery/color/named_colors.html
+
+        show_legend: bool (Optional, defaults=False)
 
         Returns
         -------
@@ -2184,6 +2186,7 @@ class Top2Vec:
             filename = f'plot_{files_suffix}.png'
 
         umap.plot.points(self.umap_model_2d, labels=labels, color_key_cmap=cmap)
+        if not show_legend: plt.gca().get_legend().remove()
         fig = plt.gcf()
         fig.set_size_inches(7.5, 7.5)
         fig.savefig(filename, dpi=400)
