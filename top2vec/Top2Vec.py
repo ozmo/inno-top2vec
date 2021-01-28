@@ -2130,7 +2130,7 @@ class Top2Vec:
                       background_color=background_color).generate_from_frequencies(word_score_dict))
         plt.title("Topic " + str(topic_num), loc='left', fontsize=25, pad=20)
 
-    def plot(self, show=False, reduced=False, files_suffix=''):
+    def plot(self, show=False, reduced=False, files_suffix='', colors_list=[]):
         """
         Create a 2D reduced embedding scatter plot (labeled).
 
@@ -2150,6 +2150,12 @@ class Top2Vec:
         files_suffix: str (Optional, default='')
             Label to apply at the end of the saved plot image filename.
 
+        colors_list: list (Optional, default=[])
+            List of colors to apply to each topic cluster. The first topic
+            is the first list index. The Nth topic is the Nth list index.
+            Colors are given as string names.
+            https://matplotlib.org/3.1.0/gallery/color/named_colors.html
+
         Returns
         -------
         A figure of the plotted document embeddings.
@@ -2163,9 +2169,10 @@ class Top2Vec:
                                     n_components=2,
                                     metric='cosine').fit(self._get_document_vectors(norm=False))
 
-        # janky way to ensure adjacent labels use contrasting colors
-        colors_list = ["tab:blue", "tab:orange", "tab:green", "tab:cyan", "tab:purple",
-                       "tab:brown", "tab:pink", "tab:olive", "tab:red"] * 30
+        if not len(colors_list):
+            # janky way to ensure adjacent labels use contrasting colors
+            colors_list = ["tab:blue", "tab:orange", "tab:green", "tab:cyan", "tab:purple",
+                        "tab:brown", "tab:pink", "tab:olive", "tab:red"] * 30
 
         if reduced:
             cmap = ListedColormap(colors_list[0:len(set(self.doc_top_reduced))])
