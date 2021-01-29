@@ -2177,13 +2177,15 @@ class Top2Vec:
         if not len(colors_list):
             # janky way to ensure adjacent labels use contrasting colors
             colors_list = ["tab:blue", "tab:orange", "tab:green", "tab:cyan", "tab:purple",
-                        "tab:brown", "tab:pink", "tab:olive", "tab:red"] * 30
+                        "tab:brown", "tab:pink", "tab:olive", "tab:red"]
 
         if reduced:
+            colors_list *= int(len(self.topic_vectors_reduced) / len(colors_list)) + 1
             cmap = ListedColormap(colors_list[0:len(set(self.doc_top_reduced))])
             labels = self.doc_top_reduced
             filename = f'plot_reduced_{files_suffix}.png'
         else:
+            colors_list *= int(len(self.topic_vectors) / len(colors_list)) + 1
             cmap = ListedColormap(colors_list[0:len(set(self.doc_top))])
             labels = self.doc_top
             filename = f'plot_{files_suffix}.png'
