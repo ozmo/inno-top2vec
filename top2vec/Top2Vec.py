@@ -2164,6 +2164,9 @@ class Top2Vec:
 
         """
 
+        if not hasattr(self, 'umap_model_2d'):
+            self.umap_model_2d = None
+
         if not self.umap_model_2d:
             # create 2D embeddings of documents for plotting
             logger.info('Ceating 2D reduced embedding of documents')
