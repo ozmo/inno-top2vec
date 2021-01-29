@@ -2188,11 +2188,10 @@ class Top2Vec:
             labels = self.doc_top
             filename = f'plot_{files_suffix}.png'
 
-        umap.plot.points(self.umap_model_2d, labels=labels, color_key_cmap=cmap)
+        umap.plot.points(self.umap_model_2d, labels=labels, color_key_cmap=cmap, width=3000, height=3000)
         if not show_legend: plt.gca().get_legend().remove()
         fig = plt.gcf()
-        fig.set_size_inches(7.5, 7.5)
-        fig.savefig(filename, dpi=400)
+        fig.savefig(filename)
 
         if show: plt.show()
 
