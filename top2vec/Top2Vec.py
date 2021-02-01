@@ -2198,3 +2198,36 @@ class Top2Vec:
         if show: plt.show()
 
         return fig
+
+    def infer_unseen_document(self, unseen_document=None, reduced=False):
+        """
+        Given an unseen document it attempts to infer the correct
+        topic.
+
+        Parameters
+        ----------
+        document: String (Required)
+            The document you would like to get the topic for.
+        reduced: bool (Optional, default False)
+            Original topics are returned by default. If True the
+            reduced topics will be returned.
+
+        Returns
+        -------
+        The topic corresponding to the provided unseen document.
+
+        """
+        if unseen_document is None:
+            raise ValueError('Unseen document was not provided cannot continue')
+        # Add the unseen document to the current model without changing
+        # existing document, word and topic vectors.
+        self.add_documents([unseen_document])
+        # Get the id for the unseen document, which should be
+        # the last item in the document_ids list after invoking
+        # self.add_documents().
+        unseen_document_id = self.document_ids[-1]
+        # Get the topics associated with the unseen document id.
+        topic = self.get_documents_topics([unseen_document_id], reduced=reduced)
+        # Finally, remove the document we added.
+        self.delete_documents([unseen_document_id])
+        return topic
