@@ -2208,12 +2208,12 @@ class Top2Vec:
         ----------
         unseen_document: str
             The document you would like to infer the topic of.
+        
         doc_id: str (Optional, default None)
-
             Only required when doc_ids were given to the original model.
-
             A unique value that will be used for referring to the document
             in search results.
+            
         reduced: bool (Optional, default False)
             Original topics are returned by default. If True the
             reduced topics will be returned.
