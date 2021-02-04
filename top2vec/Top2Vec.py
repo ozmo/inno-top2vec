@@ -2081,7 +2081,7 @@ class Top2Vec:
         else:
             return doc_scores, doc_ids
 
-    def generate_topic_wordcloud(self, topic_num, background_color="black", reduced=False, to_file=""):
+    def generate_topic_wordcloud(self, topic_num, background_color="black", reduced=False, to_file=False, filename=""):
         """
         Create a word cloud for a topic.
 
@@ -2104,9 +2104,15 @@ class Top2Vec:
             Original topics are used by default. If True the
             reduced topics will be used.
 
-        to_file: str (Optional, default="")
-            Save the wordcloud as a PNG with this as a filename. If empty,
-            file will not be created.
+        to_file: bool (Optional, default False)
+            Save the wordcloud to a PNG file.
+
+        filename: str (Optional, default="")
+            If to_file=True and filename is not empty, will set the name of the image file.
+            Must end with an image extension. Supported extensions include:
+                png, jpg, bmp, gif, pdf
+            Ex: "file.png"
+            If to_file=True and filename is empty, filename is f"topic_{topic_num}.png".
 
         Returns
         -------
@@ -2128,15 +2134,13 @@ class Top2Vec:
         plt.figure(figsize=(16, 4),
                    dpi=200)
         plt.axis("off")
-        plt.imshow(
-            WordCloud(width=1600,
-                      height=400,
-                      background_color=background_color).generate_from_frequencies(word_score_dict))
+        cloud = WordCloud(width=1600,
+                          height=400,
+                          background_color=background_color).generate_from_frequencies(word_score_dict)
+        if to_file:
+            cloud.to_file(filename if filename else f"topic_{topic_num}.png")
+        plt.imshow(cloud)
         plt.title("Topic " + str(topic_num), loc='left', fontsize=25, pad=20)
-
-        if len(to_file) > 0:
-            fig = plt.gcf()
-            fig.savefig(to_file)
 
     def plot(self, show=False, reduced=False, files_suffix='', colors_list=[], show_legend=False):
         """
