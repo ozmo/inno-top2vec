@@ -2081,7 +2081,7 @@ class Top2Vec:
         else:
             return doc_scores, doc_ids
 
-    def generate_topic_wordcloud(self, topic_num, background_color="black", reduced=False):
+    def generate_topic_wordcloud(self, topic_num, background_color="black", reduced=False, to_file=""):
         """
         Create a word cloud for a topic.
 
@@ -2103,6 +2103,10 @@ class Top2Vec:
         reduced: bool (Optional, default False)
             Original topics are used by default. If True the
             reduced topics will be used.
+
+        to_file: str (Optional, default="")
+            Save the wordcloud as a PNG with this as a filename. If empty,
+            file will not be created.
 
         Returns
         -------
@@ -2129,6 +2133,10 @@ class Top2Vec:
                       height=400,
                       background_color=background_color).generate_from_frequencies(word_score_dict))
         plt.title("Topic " + str(topic_num), loc='left', fontsize=25, pad=20)
+
+        if len(to_file) > 0:
+            fig = plt.gcf()
+            fig.savefig(to_file)
 
     def plot(self, show=False, reduced=False, files_suffix='', colors_list=[], show_legend=False):
         """
