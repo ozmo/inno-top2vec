@@ -32,6 +32,12 @@ setuptools.setup(
         'umap-learn >= 0.5.1',
         'hdbscan >= 0.8.27',
         'wordcloud',
+        'matplotlib',
+        'datashader',
+        'bokeh',
+        'holoviews',
+        'scikit-image',
+        'colorcet',
     ],
     extras_require={
         'sentence_encoders': [
