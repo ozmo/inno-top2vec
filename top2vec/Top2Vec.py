@@ -106,7 +106,6 @@ class Top2Vec:
         location of embedding_model_path.
 
         Warning: the model at embedding_model_path must match the
-        Warning: the model at embedding_model_path must match the
         embedding_model parameter type.
 
     documents: List of str
@@ -164,6 +163,12 @@ class Top2Vec:
         tokenizer for document embedding. If set to True the tokenizer, either
         default or passed callable will be used to tokenize the text to
         extract the vocabulary for word embedding.
+
+    umap_args: dict (Optional, default None)
+        Pass custom arguments to UMAP.
+
+    hdbscan_args: dict (Optional, default None)
+        Pass custom arguments to HDBSCAN.
     
     verbose: bool (Optional, default True)
         Whether to print status data during training.
@@ -184,8 +189,11 @@ class Top2Vec:
                  workers=None,
                  tokenizer=None,
                  use_embedding_model_tokenizer=False,
-                 verbose=True,
                  plot_embeddings=False):
+                 umap_args=None,
+                 hdbscan_args=None,
+                 verbose=True
+                 ):
 
         if verbose:
             logger.setLevel(logging.DEBUG)
@@ -199,10 +207,8 @@ class Top2Vec:
         else:
             self.plot_embeddings = False
 
-        if tokenizer is not None:
-            self._tokenizer = tokenizer
-        else:
-            self._tokenizer = default_tokenizer
+        if tokenizer is None:
+            tokenizer = default_tokenizer
 
         # validate documents
         if not (isinstance(documents, list) or isinstance(documents, np.ndarray)):
@@ -291,14 +297,14 @@ class Top2Vec:
             logger.info('Pre-processing documents for training')
 
             if use_corpus_file:
-                processed = [' '.join(self._tokenizer(doc)) for doc in documents]
+                processed = [' '.join(tokenizer(doc)) for doc in documents]
                 lines = "\n".join(processed)
                 temp = tempfile.NamedTemporaryFile(mode='w+t')
                 temp.write(lines)
                 doc2vec_args["corpus_file"] = temp.name
 
             else:
-                train_corpus = [TaggedDocument(self._tokenizer(doc), [i]) for i, doc in enumerate(documents)]
+                train_corpus = [TaggedDocument(tokenizer(doc), [i]) for i, doc in enumerate(documents)]
                 doc2vec_args["documents"] = train_corpus
 
             logger.info('Creating joint document/word embedding')
@@ -318,7 +324,7 @@ class Top2Vec:
             logger.info('Pre-processing documents for training')
 
             # preprocess documents
-            train_corpus = [' '.join(self._tokenizer(doc)) for doc in documents]
+            train_corpus = [' '.join(tokenizer(doc)) for doc in documents]
 
             # preprocess vocabulary
             vectorizer = CountVectorizer()
@@ -351,15 +357,23 @@ class Top2Vec:
 
         # create 5D embeddings of documents
         logger.info('Creating lower dimension embedding of documents')
-        umap_model = umap.UMAP(n_neighbors=15,
-                               n_components=5,
-                               metric='cosine').fit(self._get_document_vectors(norm=False))
+
+        if umap_args is None:
+            umap_args = {'n_neighbors': 15,
+                         'n_components': 5,
+                         'metric': 'cosine'}
+
+        umap_model = umap.UMAP(**umap_args).fit(self._get_document_vectors(norm=False))
 
         # find dense areas of document vectors
         logger.info('Finding dense areas of documents')
-        cluster = hdbscan.HDBSCAN(min_cluster_size=15,
-                                  metric='euclidean',
-                                  cluster_selection_method='eom').fit(umap_model.embedding_)
+
+        if hdbscan_args is None:
+            hdbscan_args = {'min_cluster_size': 15,
+                             'metric': 'euclidean',
+                             'cluster_selection_method': 'eom'}
+
+        cluster = hdbscan.HDBSCAN(**hdbscan_args).fit(umap_model.embedding_)
 
         # calculate topic vectors from dense areas of documents
         logger.info('Finding topics')
@@ -419,6 +433,7 @@ class Top2Vec:
         file: str
             File where model will be saved.
         """
+
         # do not save sentence encoders and sentence transformers
         if self.embedding_model != "doc2vec":
             self.embed = None
@@ -886,12 +901,15 @@ class Top2Vec:
             doc_ids_neg = list(doc_ids_neg)
 
         doc_ids_all = doc_ids + doc_ids_neg
-        for doc_id in doc_ids_all:
-            if self.document_ids is not None:
-                if doc_id not in self.document_ids:
+
+        if self.document_ids is not None:
+            for doc_id in doc_ids_all:
+                if doc_id not in self.doc_id2index:
                     raise ValueError(f"{doc_id} is not a valid document id.")
-            elif doc_id < 0 or doc_id > len(self.doc_top) - 1:
-                raise ValueError(f"{doc_id} is not a valid document id.")
+        elif min(doc_ids) < 0:
+            raise ValueError(f"{min(doc_ids)} is not a valid document id.")
+        elif max(doc_ids) > len(self.doc_top) - 1:
+            raise ValueError(f"{max(doc_ids)} is not a valid document id.")
 
     def _validate_keywords(self, keywords, keywords_neg):
         if not (isinstance(keywords, list) or isinstance(keywords, np.ndarray)):
@@ -1118,7 +1136,7 @@ class Top2Vec:
 
         return doc_topics, doc_dist, topic_words, topic_word_scores
 
-    def add_documents(self, documents, doc_ids=None):
+    def add_documents(self, documents, doc_ids=None, tokenizer=None, use_embedding_model_tokenizer=False):
         """
         Update the model with new documents.
 
@@ -1134,12 +1152,22 @@ class Top2Vec:
         documents: List of str
 
         doc_ids: List of str, int (Optional)
-
             Only required when doc_ids were given to the original model.
 
             A unique value per document that will be used for referring to
             documents in search results.
+
+        tokenizer: callable (Optional, default None)
+            Override the default tokenization method. If None then
+            gensim.utils.simple_preprocess will be used.
+
+        use_embedding_model_tokenizer: bool (Optional, default False)
+            If using an embedding model other than doc2vec, use the model's
+            tokenizer for document embedding.
         """
+        # if tokenizer is not passed use default
+        if tokenizer is None:
+            tokenizer = default_tokenizer
 
         # add documents
         self._validate_documents(documents)
@@ -1163,10 +1191,8 @@ class Top2Vec:
         else:
             raise ValueError("doc_ids cannot be used because they were not provided to model during training.")
 
-        # get document vectors
-        docs_processed = [self._tokenizer(doc) for doc in documents]
-
         if self.embedding_model == "doc2vec":
+            docs_processed = [tokenizer(doc) for doc in documents]
             document_vectors = np.vstack([self.model.infer_vector(doc_words=doc,
                                                                   alpha=0.025,
                                                                   min_alpha=0.01,
@@ -1179,7 +1205,11 @@ class Top2Vec:
             self.model.docvecs.init_sims()
 
         else:
-            docs_training = [' '.join(doc) for doc in docs_processed]
+            if use_embedding_model_tokenizer:
+                docs_training = documents
+            else:
+                docs_processed = [tokenizer(doc) for doc in documents]
+                docs_training = [' '.join(doc) for doc in docs_processed]
             document_vectors = self._embed_documents(docs_training)
             self._set_document_vectors(np.vstack([self._get_document_vectors(), document_vectors]))
 
