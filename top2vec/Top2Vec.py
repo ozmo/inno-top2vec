@@ -189,7 +189,7 @@ class Top2Vec:
                  workers=None,
                  tokenizer=None,
                  use_embedding_model_tokenizer=False,
-                 plot_embeddings=False):
+                 plot_embeddings=False,
                  umap_args=None,
                  hdbscan_args=None,
                  verbose=True
