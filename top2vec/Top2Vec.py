@@ -2241,6 +2241,52 @@ class Top2Vec:
 
         return fig
 
+    def search_documents_by_unseen_document(self, unseen_document=None, doc_id=None, num_docs=5):
+        """
+        Given an unseen document it attempts to infer the closest documents in
+        the model.
+
+        Parameters
+        ----------
+        unseen_document: str
+            The document you would like to search with
+        
+        doc_id: str (Optional, default None)
+            Only required when doc_ids were given to the original model.
+            A unique value that will be used for referring to the document
+            in search results.
+            
+        num_docs: int (Optional, default 5)
+            The number of closest matching documents to return
+
+        Returns
+        -------
+        An array of documents that are the most semantically similar to the
+        provided unseen_document.
+
+        """
+        if unseen_document is None:
+            raise ValueError('Unseen document was not provided cannot continue')
+        # Add the unseen document to the current model without changing
+        # existing document, word and topic vectors.
+        if doc_id is None:
+            self.add_documents([unseen_document])
+        else:
+            self.add_documents([unseen_document], doc_ids=[doc_id]) 
+        # Get the id for the unseen document, which should be
+        # the last item in the document_ids list after invoking
+        # self.add_documents().
+        unseen_document_id = self.document_ids[-1]
+        # Get the documents that are most semantically similar to the document
+        # associated with the unseen document id.
+        if doc_id is not None:
+            document = self.search_documents_by_documents([doc_id], num_docs, return_documents=True)
+        else:
+            document = self.search_documents_by_documents([unseen_document_id], num_docs, return_documents=True)
+        # Finally, remove the document we added.
+        self.delete_documents([unseen_document_id])
+        return document
+
     def infer_unseen_document(self, unseen_document=None, doc_id=None, reduced=False):
         """
         Given an unseen document it attempts to infer the correct
